@@ -1,1 +1,3 @@
 25d.txt
+*.DS_Store
+.venv/
