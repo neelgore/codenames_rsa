@@ -1,8 +1,7 @@
 // Must run with --require webppl-fs
 
 var dataString = fs.read("25d_trimmed_normalized.txt");
-var rawArray = dataString.split("\n").slice(0, -1);
-//rawArray has an empty string as the last element
+var rawArray = dataString.split("\n");
 
 var codenamesWordList = fs.read("codenames_wordlist.txt").split("\n");
 
@@ -41,7 +40,6 @@ var meaning = function(clue, words) {
 		return ad.tensor.dot(ad.tensor.transpose(vectors[clue]), vector);
 	};
 	var dotProducts = map(dotWithClue, wordsVectors);
-	display(dotProducts);
 
   return ad.scalar.sum(dotProducts) > 0
 };
@@ -71,5 +69,4 @@ var meaningIsFalse = function(clue)
 	return !meaning(clue, ["beach"])
 };
 
-var badVectors = filter(meaningIsFalse, clues);
-display(badVectors.length);
+
