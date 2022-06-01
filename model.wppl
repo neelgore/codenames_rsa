@@ -1,0 +1,35 @@
+// Must run with --require webppl-fs
+var dataString = fs.read("25d_trimmed.txt");
+var rawArray = dataString.split("\n");
+
+var toWords = function(str) {str.split(" ", 1)};
+var toVectors = function(str) {
+  var array = str.split(" ");
+  Vector(array.slice(1));
+};
+
+var utterances = map(toWords, rawArray);
+var vectors = map(toVectors, rawArray);
+var wordsAndVectors = zip(utterances, vectors);
+var data = Object.fromEntries(wordsAndVectors);
+
+var createGame = function(num) {uniformDraw(utterances)};
+var game = mapN(createGame, 10);
+
+var meaning = function(utterance, clue) {
+  var utterance = T.transpose(data[utterance]);
+  return T.sumreduce(T.dot(data[clue], utterance)) > 0 ? true : false;
+};
+
+var literalListener = function(utterance) {
+  Infer({model: function(){
+    var word = uniformDraw(game);
+    var uttTruthVal = meaning(utterance, word);
+    condition(uttTruthVal == true)
+    return word;
+  }})
+};
+
+
+
+
