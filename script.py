@@ -3,6 +3,7 @@ vectors = {}
 english_words = set()
 
 with open('wordlist.txt') as wordlist:
+
 	for line in wordlist.readlines():
 		word = line.rstrip('\n')
 		english_words.add(word)
@@ -26,5 +27,11 @@ with open('25d_trimmed.txt', 'a') as trimmed:
 		trimmed.write(' '.join(vector))
 		trimmed.write('\n')
 
+with open('codenames_wordlist.txt', 'r') as codenames_wordlist:
+
+	with open('pog.txt', 'a') as pog:
+
+		lowercased = [word.rstrip('\n').lower() for word in codenames_wordlist.readlines()]
+		pog.write('\n'.join(lowercased))
 
 	

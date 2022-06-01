@@ -1,35 +1,77 @@
 // Must run with --require webppl-fs
-var dataString = fs.read("25d_trimmed.txt");
-var rawArray = dataString.split("\n");
 
-var toWords = function(str) {str.split(" ", 1)};
-var toVectors = function(str) {
-  var array = str.split(" ");
-  Vector(array.slice(1));
+var dataString = fs.read("25d_trimmed.txt");
+var rawArray = dataString.split("\n").slice(0, -1);
+//rawArray has an empty string as the last element
+
+var codenamesWordList = fs.read("codenames_wordlist.txt").split("\n");
+
+
+
+
+var toWords = function(str)
+{
+	return str.split(" ", 1);
 };
 
-var utterances = map(toWords, rawArray);
-var vectors = map(toVectors, rawArray);
-var wordsAndVectors = zip(utterances, vectors);
-var data = Object.fromEntries(wordsAndVectors);
+var toVectors = function(str)
+{
+	var array = str.split(" ");
+	return Vector(array.slice(1));
+};
 
-var createGame = function(num) {uniformDraw(utterances)};
-var game = mapN(createGame, 10);
 
-var meaning = function(utterance, clue) {
-  var utterance = T.transpose(data[utterance]);
-  return T.sumreduce(T.dot(data[clue], utterance)) > 0 ? true : false;
+
+
+var clues = map(toWords, rawArray);
+var clueVectors = map(toVectors, rawArray);
+var vectors = Object.fromEntries(zip(clues, clueVectors));
+
+
+
+var fixedNumCluesPerTurn = true;
+var numCluesPerTurn = 2;
+
+
+var meaning = function(clue, words) {
+
+	var wordsVectors = map(function(word) {return vectors[word];}, words);
+	var dotWithClue = function(vector)
+	{
+		return ad.tensor.dot(ad.tensor.transpose(vectors[clue]), vector);
+	};
+	var dotProducts = map(dotWithClue, wordsVectors);
+	display(dotProducts);
+
+  return ad.scalar.sum(dotProducts) > 0
 };
 
 var literalListener = function(utterance) {
-  Infer({model: function(){
-    var word = uniformDraw(game);
-    var uttTruthVal = meaning(utterance, word);
-    condition(uttTruthVal == true)
-    return word;
-  }})
+	Infer(function()
+		{
+			var word = uniformDraw(game);
+			var uttTruthVal = meaning(utterance, word);
+			condition(uttTruthVal);
+			return word;
+		}
+	)
 };
 
+/*
+var createGame = function(numWords) 
+{
+	return mapN(uniformDraw(codenamesWordList), numWords);
+};
 
+var game = createGame(10);
+*/
 
+var meaningIsFalse = function(clue)
+{
+	return !meaning(clue, ["beach"])
+};
 
+display(meaning("sand", ["beach"]));
+display(meaning("error", ["beach"]));
+
+display(meaning("murder", ["beach"]))
