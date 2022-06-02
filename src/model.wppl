@@ -28,14 +28,15 @@ var vectors = Object.fromEntries(zip(clues, clueVectors));
 
 
 
-var fixedNumCluesPerTurn = true;
-var numCluesPerTurn = 2;
-
-var wordsPrior = function(state, numClues)
+var wordsPrior = function()
 {
-	var subset = _.sampleSize(state, numClues);
-	subset.sort();
-	return subset;
+	var pairs = [["chicken", "eagle"], ["eagle", "pig"], ["chicken", "pig"]];
+	return uniformDraw(pairs);
+}
+
+var cluePrior = function()
+{
+	return uniformDraw("farm", "animal", "bird");
 }
 
 
@@ -60,11 +61,11 @@ var meaning = function(clue, words) {
   return all(positiveDotProduct, dotProducts);
 };
 
-var literalListener = function(clue, state, numClues) {
+var literalListener = function(clue)
+{
 	Infer(function()
 		{
-			var numCluesThisTurn = fixedNumCluesPerTurn ? numCluesPerTurn : numClues;
-			var randomSubset = wordsPrior(state, numCluesThisTurn);
+			var randomSubset = wordsPrior();
 			var uttTruthVal = meaning(clue, randomSubset);
 			condition(uttTruthVal);
 			return randomSubset;
@@ -72,17 +73,31 @@ var literalListener = function(clue, state, numClues) {
 	)
 };
 
+var speaker = function(subset)
+{
+	Infer(function()
+		{
+			var clue = cluePrior();
+			factor(table(literalListener(clue))[subset.join()]);
+			return clue;
+		}
+	)
+}
+
+
+var table = function(dist)
+{
+	var answer =  zip(map(function(list) {return list.toString();}, dist["supp"]), map(function(obj) {return obj["prob"];}, Object.values(dist["params"]["dist"])));
+	return Object.fromEntries(answer);
+}
+
+
 var state = ["chicken", "eagle", "pig"];
 
-/*
-display(meaning("animal", ["chicken", "eagle"]));
-display(meaning("animal", ["chicken", "pig"]));
-display(meaning("animal", ["pig", "eagle"]));
-*/
-
-display(literalListener("animal", state, 2));
-
-display(Infer(function() {return flip(0.4);}));
+var eaglePig = ["eagle", "pig"];
 
 
+
+
+display(table(literalListener("pig"))[eaglePig.join()]);
 
