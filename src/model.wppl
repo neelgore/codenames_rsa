@@ -1,4 +1,4 @@
-// Must run with --require webppl-fs
+// Must run with --require webppl-fs --require webppl-viz
 
 var dataString = fs.read("25d_trimmed_normalized.txt");
 var rawArray = dataString.split("\n");
@@ -31,42 +31,58 @@ var vectors = Object.fromEntries(zip(clues, clueVectors));
 var fixedNumCluesPerTurn = true;
 var numCluesPerTurn = 2;
 
+var wordsPrior = function(state, numClues)
+{
+	var subset = _.sampleSize(state, numClues);
+	subset.sort();
+	return subset;
+}
+
 
 var meaning = function(clue, words) {
 
 	var wordsVectors = map(function(word) {return vectors[word];}, words);
+
 	var dotWithClue = function(vector)
 	{
 		return ad.tensor.dot(ad.tensor.transpose(vectors[clue]), vector);
 	};
+
+	var positiveDotProduct = function(tensorWithDotProduct)
+	{
+		var dp = ad.tensor.toScalars(tensorWithDotProduct)[0];
+		return dp > 0;
+	}
+
 	var dotProducts = map(dotWithClue, wordsVectors);
 
-  return ad.scalar.sum(dotProducts) > 0
+
+  return all(positiveDotProduct, dotProducts);
 };
 
-var literalListener = function(utterance) {
+var literalListener = function(clue, state, numClues) {
 	Infer(function()
 		{
-			var word = uniformDraw(game);
-			var uttTruthVal = meaning(utterance, word);
+			var numCluesThisTurn = fixedNumCluesPerTurn ? numCluesPerTurn : numClues;
+			var randomSubset = wordsPrior(state, numCluesThisTurn);
+			var uttTruthVal = meaning(clue, randomSubset);
 			condition(uttTruthVal);
-			return word;
+			return randomSubset;
 		}
 	)
 };
 
-/*
-var createGame = function(numWords) 
-{
-	return mapN(uniformDraw(codenamesWordList), numWords);
-};
+var state = ["chicken", "eagle", "pig"];
 
-var game = createGame(10);
+/*
+display(meaning("animal", ["chicken", "eagle"]));
+display(meaning("animal", ["chicken", "pig"]));
+display(meaning("animal", ["pig", "eagle"]));
 */
 
-var meaningIsFalse = function(clue)
-{
-	return !meaning(clue, ["beach"])
-};
+display(literalListener("animal", state, 2));
+
+display(Infer(function() {return flip(0.4);}));
+
 
 

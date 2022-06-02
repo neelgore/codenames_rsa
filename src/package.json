@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "webppl-viz": "github:probmods/webppl-viz"
+  }
+}
