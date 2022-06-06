@@ -1,4 +1,4 @@
-// Must run with --require webppl-fs --require webppl-viz
+// Must run with --require webppl-fs
 
 var dataString = fs.read("25d_trimmed_normalized.txt");
 var rawArray = dataString.split("\n");
@@ -101,12 +101,12 @@ var speaker = function(subset)
 var pragmaticListener = function(clue)
 {
 	Infer(function()
-	{
-		var randomSubset = wordsPrior();
-		var s1 = speaker(randomSubset);
-		observe(s1, clue);
-		return randomSubset;
-	}
+		{
+			var randomSubset = wordsPrior();
+			var s1 = speaker(randomSubset);
+			observe(s1, clue);
+			return randomSubset;
+		}
 	)
 };
 
