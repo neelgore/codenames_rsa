@@ -32,33 +32,47 @@ var wordsPrior = function()
 {
 	var pairs = [["chicken", "eagle"], ["eagle", "pig"], ["chicken", "pig"]];
 	return uniformDraw(pairs);
-}
+};
 
 var cluePrior = function()
 {
-	return uniformDraw("farm", "animal", "bird");
-}
+	return uniformDraw(["farm", "animal", "bird"]);
+};
 
+var alpha = 1;
 
 var meaning = function(clue, words) {
 
-	var wordsVectors = map(function(word) {return vectors[word];}, words);
-
-	var dotWithClue = function(vector)
+	var distance = function(vector1, vector2)
 	{
-		return ad.tensor.dot(ad.tensor.transpose(vectors[clue]), vector);
+		var squared = map(function(tuple) 
+		{
+			return (tuple[0] - tuple[1])*(tuple[0] - tuple[1]);
+		}
+		, zip(ad.tensor.toScalars(vector1), ad.tensor.toScalars(vector2))
+		);
+
+	
+		var answer =  Math.sqrt(sum(squared));
+		return answer;
 	};
 
-	var positiveDotProduct = function(tensorWithDotProduct)
+	var sigmoid = function(num)
 	{
-		var dp = ad.tensor.toScalars(tensorWithDotProduct)[0];
-		return dp > 0;
-	}
+		return 1/(1 + Math.exp(-1*num));
+	};
 
-	var dotProducts = map(dotWithClue, wordsVectors);
+	var trueFalse = function(clue, word)
+	{
+		var dist = distance(vectors[clue], vectors[word]);
+		var prob = sigmoid(1/dist);
+		return flip(prob);
+	};
+
+	var wordsVectors = map(function(word) {return trueFalse(clue, word);}, words);
 
 
-  return all(positiveDotProduct, dotProducts);
+  return all(function(s) {return s;}, wordsVectors);
 };
 
 var literalListener = function(clue)
@@ -78,18 +92,30 @@ var speaker = function(subset)
 	Infer(function()
 		{
 			var clue = cluePrior();
-			factor(table(literalListener(clue))[subset.join()]);
+			factor(alpha*literalListener(clue).score(subset));
 			return clue;
 		}
 	)
-}
+};
+
+var pragmaticListener = function(clue)
+{
+	Infer(function()
+	{
+		var randomSubset = wordsPrior();
+		var s1 = speaker(randomSubset);
+		observe(s1, clue);
+		return randomSubset;
+	}
+	)
+};
 
 
 var table = function(dist)
 {
 	var answer =  zip(map(function(list) {return list.toString();}, dist["supp"]), map(function(obj) {return obj["prob"];}, Object.values(dist["params"]["dist"])));
 	return Object.fromEntries(answer);
-}
+};
 
 
 var state = ["chicken", "eagle", "pig"];
@@ -97,7 +123,6 @@ var state = ["chicken", "eagle", "pig"];
 var eaglePig = ["eagle", "pig"];
 
 
+table(pragmaticListener("animal"));
 
-
-display(table(literalListener("pig"))[eaglePig.join()]);
 
